@@ -1,36 +1,22 @@
 # Sigm@7-test
 
 ## Question 1
-The GIS server has a process which generates packages of data for the mobile GIS viewer
-client to download, effectively refreshing the data on the client device. There are 260 mobile
-client users, and each user can run the “Update Datasets” application from their laptop when
-connected to the LAN. The “Update Datasets” application will copy the appropriate packages
-from the hard disk on the GIS server to the laptop, and decompress the data, replacing the
-existing datasets.
-Our customer would like a report to be generated listing the date and time that each mobile
-user last downloaded a data package from the server. The report should list the user name,
-computer name, and the date and time that the user most recently downloaded a package of
-data from the server.
+First of all, I would like to try to convince the stakeholder or product owner that "HDD storage" is far from being ideal for such kind of tasks. For security reasons and because that fact that file system storage is less transactional that I know. I would suggest you a cloud based storages as S3 from Amazon or even Bigtable. Let's omit technical choices details, we could argue about later, and let's introduce a notion of abstract storage (AS)instead of concrete file system solution.
 
-We have the following constraints:
-• 
-There is no database server installed on the GIS server, therefore it is not
-possible to store these details within a server database.
-• 
-The report should be generated when the customer selects the “Regenerate
-Mobile User Report” command from a newly developed component that will run
-on the server (overwriting the previous report if one exists).
-• 
-The report file should be generated at a fixed location on the GIS server hard
-disk.
-• 
-The mobile client users and applications have access to the GIS server hard disk
-when they are connected to the LAN.
-Question:
-Document the method(s) you would/could use to implement a solution to this requirement.
-If more than one method is proposed, highlight the pros and cons of each proposal.
-The documentation should be detailed enough to be passed to a colleague within the
-development team to implement the solution.
+
+Our AS is key/value store where data could be represented as following:
+
+UserID -> Report(listing the user name, computer name, and the date and time that the user most recently downloaded a package of data from the server)
+
+I would propose to build this system on top of HTTP/S stack. Implementing following scenarios:
+
+- Client emits a get request, on server side we deliver the stream(datasets) and generate such report(depending on technical choice it can be done in sync or async way)
+
+- Customer acts on "Regenerate Mobile User Report"(the right term would be get MU report), the component emits a get request with UserID for which on server side we deliver status 200 with appropriate report or 404 status when report does not exist for such user.
+
+- No direct access is permitted to our AS(security reasons), only a http wrapper(ul list representation of AS content) can be provided.
+
+For simplicity we can replace AS by in memory structure as Map/Dictionary, but for that we will need to persist it somewhere when our web server stops, and read it when web server starts. In term of scalability it's not ideal because we will need to think about replication.
 
 ## Question 2
 
